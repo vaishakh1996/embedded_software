@@ -17,23 +17,36 @@
  */
 
 #include <stdint.h>
+#include <peripherals.h>
+
+
+void SYSCLK_init(void);
+void delay(volatile uint32_t count);
 
 
 
-#include <stdint.h>
 
-#define RCC_BASE       0x40021000UL
-#define FLASH_BASE     0x40022000UL
-#define GPIOA_BASE     0x40010800UL
+int main(void) {
+    SYSCLK_init();
 
-#define RCC_CR         (*(volatile uint32_t *)(RCC_BASE + 0x00))
-#define RCC_CFGR       (*(volatile uint32_t *)(RCC_BASE + 0x04))
-#define RCC_APB2ENR    (*(volatile uint32_t *)(RCC_BASE + 0x18))
+    // Enable GPIOA clock, IOPAEN is bit 2 in RCC_APB2ENR
+    RCC_APB2ENR |= (1 << 2);
 
-#define FLASH_ACR      (*(volatile uint32_t *)(FLASH_BASE + 0x00))
+    // Configure PA5 (pin 5) as output push-pull, 2 MHz
+    // CRL controls pins 0..7, 4 bits per pin
+    // Clear bits 23:20 for PA5
+    GPIOA_CRL &= ~(0xF << (5 * 4));
+    // Set MODE5=0b10 (bits 21:20), CNF5=0b00 (bits 23:22)
+    GPIOA_CRL |= (0x2 << (5 * 4)); // MODE5 = 10 (2 MHz output)
+    // CNF5 already clear for push-pull
 
-#define GPIOA_CRL      (*(volatile uint32_t *)(GPIOA_BASE + 0x00))
-#define GPIOA_BSRR     (*(volatile uint32_t *)(GPIOA_BASE + 0x10))
+    while (1) {
+        GPIOA_BSRR = (1 << 5);          // Set PA5 high
+        delay(500000);
+        GPIOA_BSRR = (1 << (5 + 16));  // Reset PA5 low
+        delay(500000);
+    }
+}
 
 void SYSCLK_init(void) {
     // Enable HSE (bit 16)
@@ -78,26 +91,4 @@ void SYSCLK_init(void) {
 
 void delay(volatile uint32_t count) {
     while (count--) {}
-}
-
-int main(void) {
-    SYSCLK_init();
-
-    // Enable GPIOA clock, IOPAEN is bit 2 in RCC_APB2ENR
-    RCC_APB2ENR |= (1 << 2);
-
-    // Configure PA5 (pin 5) as output push-pull, 2 MHz
-    // CRL controls pins 0..7, 4 bits per pin
-    // Clear bits 23:20 for PA5
-    GPIOA_CRL &= ~(0xF << (5 * 4));
-    // Set MODE5=0b10 (bits 21:20), CNF5=0b00 (bits 23:22)
-    GPIOA_CRL |= (0x6 << (5 * 4)); // MODE5 = 10 (2 MHz output)
-    // CNF5 already clear for push-pull
-
-    while (1) {
-        GPIOA_BSRR = (1 << 5);          // Set PA5 high
-        delay(500000);
-        //GPIOA_BSRR = (1 << (5 + 16));  // Reset PA5 low
-        delay(500000);
-    }
 }
