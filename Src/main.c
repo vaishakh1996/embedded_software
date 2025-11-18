@@ -49,42 +49,54 @@ int main(void) {
 }
 
 void SYSCLK_init(void) {
-    // Enable HSE (bit 16)
+    // 1️⃣ Enable HSE (High-Speed External, typically 8 MHz)
     RCC_CR |= (1 << 16);
-    while ((RCC_CR & (1 << 17)) == 0); // Wait for HSERDY (bit17)
+    while ((RCC_CR & (1 << 17)) == 0); // Wait for HSERDY
+    // HSE frequency = 8 MHz
 
-    // Enable Prefetch buffer and set flash latency to 1 WS
+    // 2️⃣ Enable Prefetch buffer and set flash latency to 1 WS
     FLASH_ACR |= (1 << 4);
     FLASH_ACR &= ~(7 << 0);
     FLASH_ACR |= 1 << 0;
+    // Flash latency set for SYSCLK > 24 MHz (required for 32 MHz)
+    // Prefetch buffer enabled for better performance
 
-    // Clear PLLSRC and PLLMUL bits
+    // 3️⃣ Clear PLLSRC and PLLMUL bits
     RCC_CFGR &= ~((1 << 16) | (0xF << 18));
 
-    // Set PLLSRC = HSE (bit 16)
+    // 4️⃣ Set PLLSRC = HSE (bit 16)
     RCC_CFGR |= (1 << 16);
+    // PLL input clock = HSE = 8 MHz
 
-    // Set PLLMUL to x4 (0x2 shifted to bits 21:18)
+    // 5️⃣ Set PLLMUL to x4 (0x2 shifted to bits 21:18)
     RCC_CFGR |= (0x2 << 18);
+    // PLL multiplication factor = 4
+    // PLL output = 8 MHz * 4 = 32 MHz
 
-    // Set AHB prescaler HPRE bits [7:4] to SYSCLK not divided (0b0000)
+    // 6️⃣ Set AHB prescaler HPRE bits [7:4] to SYSCLK not divided (0b0000)
     RCC_CFGR &= ~(0xF << 4); // clear bits 4-7
+    // AHB clock (HCLK) = SYSCLK / 1 = 32 MHz
 
-    // Set APB1 low-speed prescaler PPRE1 bits [10:8] to divide by 2 (0b100)
+    // 7️⃣ Set APB1 low-speed prescaler PPRE1 bits [10:8] to divide by 2 (0b100)
     RCC_CFGR &= ~(0x7 << 8); // clear bits 8-10
-    RCC_CFGR |= (0x4 << 8);  // set to divide by 2: 0b100
+    RCC_CFGR |= (0x4 << 8);  // set to divide by 2
+    // APB1 clock (PCLK1) = HCLK / 2 = 32 MHz / 2 = 16 MHz
+    // Note: Max APB1 frequency is 36 MHz, safe
 
-    // Set APB2 high-speed prescaler PPRE2 bits [13:11] to not divided (0b000)
+    // 8️⃣ Set APB2 high-speed prescaler PPRE2 bits [13:11] to not divided (0b000)
     RCC_CFGR &= ~(0x7 << 11); // clear bits 11-13
+    // APB2 clock (PCLK2) = HCLK / 1 = 32 MHz
 
-    // Enable PLL (bit 24)
+    // 9️⃣ Enable PLL (bit 24)
     RCC_CR |= (1 << 24);
-    while ((RCC_CR & (1 << 25)) == 0); // Wait for PLLRDY (bit 25)
+    while ((RCC_CR & (1 << 25)) == 0); // Wait for PLLRDY
+    // PLL output = 32 MHz (ready to use as system clock)
 
-    // Select PLL as system clock: clear SW bits [1:0], set to 0b10
+    // 🔟 Select PLL as system clock: clear SW bits [1:0], set to 0b10
     RCC_CFGR &= ~(0x3);
     RCC_CFGR |= 0x2;
     while ((RCC_CFGR & (0x3 << 2)) != (0x2 << 2)); // Wait for SWS bits [3:2] == 0b10 (PLL)
+    // System clock (SYSCLK) = PLL output = 32 MHz
 }
 
 
