@@ -21,6 +21,7 @@
 
 
 void SYSCLK_init(void);
+void Timer2_Init(void);
 void delay(volatile uint32_t count);
 
 
@@ -28,6 +29,7 @@ void delay(volatile uint32_t count);
 
 int main(void) {
     SYSCLK_init();
+    Timer2_Init();
 
     // Enable GPIOA clock, IOPAEN is bit 2 in RCC_APB2ENR
     RCC_APB2ENR |= (1 << 2);
@@ -99,6 +101,19 @@ void SYSCLK_init(void) {
     // System clock (SYSCLK) = PLL output = 32 MHz
 }
 
+void Timer2_Init(void) {
+    // 1. Enable clock for Timer 2 (bit 0 in RCC_APB1ENR)
+    RCC_APB1ENR |= (1 << 0);
+
+    // 2. Set prescaler for 1 MHz timer clock assuming 16 MHz APB1 clock
+    TIM2_PSC = 15;  // 16MHz / (15 + 1) = 1 MHz timer frequency
+
+    // 3. Set auto-reload register for timer period (e.g., 1000 us = 1 ms)
+    TIM2_ARR = 999; // Counts from 0..999 = 1000 ticks (1 ms period)
+
+    // 4. Enable the timer by setting CEN bit (bit 0) in TIM2_CR1
+    TIM2_CR1 |= (1 << 0); // Start timer counting up
+}
 
 
 void delay(volatile uint32_t count) {
