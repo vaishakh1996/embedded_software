@@ -22,7 +22,7 @@
 
 void SYSCLK_init(void);
 void Timer2_Init(void);
-void delay(volatile uint32_t count);
+void delay_ms(uint32_t ms);
 
 
 
@@ -44,9 +44,9 @@ int main(void) {
 
     while (1) {
         GPIOA_BSRR = (1 << 5);          // Set PA5 high
-        delay(500000);
+        delay_ms(1000);
         GPIOA_BSRR = (1 << (5 + 16));  // Reset PA5 low
-        delay(500000);
+        delay_ms(1000);
     }
 }
 
@@ -105,17 +105,27 @@ void Timer2_Init(void) {
     // 1. Enable clock for Timer 2 (bit 0 in RCC_APB1ENR)
     RCC_APB1ENR |= (1 << 0);
 
-    // 2. Set prescaler for 1 MHz timer clock assuming 16 MHz APB1 clock
-    TIM2_PSC = 15;  // 16MHz / (15 + 1) = 1 MHz timer frequency
+    // 2. Set prescaler for 1 kHz timer clock assuming 2 * 16 MHz APB1 clock
+    TIM2_PSC = 31999;  // divides 32 MHz by (31999 + 1)  = 1 kHz timer frequency
 
-    // 3. Set auto-reload register for timer period (e.g., 1000 us = 1 ms)
-    TIM2_ARR = 999; // Counts from 0..999 = 1000 ticks (1 ms period)
+    // 3. Set auto-reload register for max count
+    TIM2_ARR = 0xFFFF; // Max 16-bit value
 
-    // 4. Enable the timer by setting CEN bit (bit 0) in TIM2_CR1
-    TIM2_CR1 |= (1 << 0); // Start timer counting up
+    // 4. Enable the timer by setting CEN bit (counter enable) to start counting up
+    TIM2_CR1 |= (1 << 0);
 }
 
 
-void delay(volatile uint32_t count) {
-    while (count--) {}
+void delay_ms(uint32_t ms) {
+	TIM2_CR1 &= ~(1 << 0);       // Disable timer (CEN=0)
+	TIM2_CNT = 0;                // Reset counter
+	TIM2_EGR = 1;                // Generate update event (UG=1)
+	TIM2_CR1 |= (1 << 0);        // Enable timer (CEN=1)
+       // Start timer
+    while (TIM2_CNT < ms) {
+        // Wait until desired count reached
+    }
+    TIM2_CR1 &= ~(1 << 0);        // Stop timer (optional)
 }
+
+
