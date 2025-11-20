@@ -29,6 +29,11 @@
 #define TIM2_PSC (*((volatile uint32_t *)(TIM2_BASE + 0x28)))
 #define TIM2_ARR (*((volatile uint32_t *)(TIM2_BASE + 0x2C)))
 #define TIM2_CR1 (*((volatile uint32_t *)(TIM2_BASE + 0x00)))
+#define TIM2_CNT (*((volatile uint32_t *)(TIM2_BASE + 0X24)))
+#define TIM2_EGR (*((volatile uint32_t *)(TIM2_BASE + 0x14)))
+
+
+
 
 
 #endif /* PERIPHERALS_H_ */
