@@ -42,6 +42,18 @@
 #define TIM4_CCMR1     (*(volatile uint32_t *)(TIM4_BASE + 0x18)) // TIM4 capture/compare mode reg 1
 #define TIM4_CCER      (*(volatile uint32_t *)(TIM4_BASE + 0x20)) // TIM4 capture/compare enable reg
 
+#define AFIO_BASE      0x40000100UL     // Alternate function I/O base
+
+#define EXTI_BASE      0x40010400UL     // EXTI controller base
+#define EXTI_IMR       (*(volatile uint32_t *)(EXTI_BASE + 0x00)) // Interrupt mask register
+#define EXTI_RTSR      (*(volatile uint32_t *)(EXTI_BASE + 0x08)) // Rising trigger selection register
+#define EXTI_FTSR      (*(volatile uint32_t *)(EXTI_BASE + 0x0C)) // Falling trigger selection register
+#define EXTI_PR        (*(volatile uint32_t *)(EXTI_BASE + 0x14)) // Pending register
+
+#define NVIC_ISER      ((volatile uint32_t *)0xE000E100)          // NVIC interrupt set-enable registers (32 IRQs/unit)
+#define NVIC_IPR       ((volatile uint8_t  *)0xE000E400)          // NVIC interrupt priority registers (8-bit each)
+
+#define EXTI3_IRQn     9                                          // IRQ number for EXTI line 3
 
 
 #endif /* PERIPHERALS_H_ */
