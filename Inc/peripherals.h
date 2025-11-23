@@ -43,6 +43,8 @@
 #define TIM4_CCER      (*(volatile uint32_t *)(TIM4_BASE + 0x20)) // TIM4 capture/compare enable reg
 
 #define AFIO_BASE      0x40000100UL     // Alternate function I/O base
+#define AFIO_EXTICR1   (*(volatile uint32_t *)(AFIO_BASE + 0x08))
+
 
 #define EXTI_BASE      0x40010400UL     // EXTI controller base
 #define EXTI_IMR       (*(volatile uint32_t *)(EXTI_BASE + 0x00)) // Interrupt mask register

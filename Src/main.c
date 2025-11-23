@@ -20,28 +20,35 @@ volatile uint8_t pwm_duty = 0;  // Shared PWM duty cycle variable
 void SYSCLK_init(void);
 void Timer2_Init(void);
 void GPIOB_Init(void);
-void TIM4_PWM_Init(void);
+void TIM4_PWM_Init();
 void delay_ms(uint32_t ms);
+void EXTI3_Init(void);
+void EXTI3_IRQHandler(void);
+void increment_and_wrap(volatile uint8_t *val);
+
 
 int main(void) {
     SYSCLK_init();         // Set system clock to 32 MHz via PLL
     Timer2_Init();         // Initialize TIM2 for delay_ms timing
     GPIOB_Init();          // Setup GPIO pins PB3, PB6, PB7, PB8
     TIM4_PWM_Init();       // Setup TIM4 channel 1 as PWM output (PB6)
+    EXTI3_Init();          // Enable EXTI line 3 (PB3) interrupt
+
+
 
 
 
     while (1) {
         // Blink PB7 and PB8 alternately using bit set/reset registers
         GPIOB_BSRR = (1 << 7);
-        delay_ms(1000);
+       /* delay_ms(1000);
         GPIOB_BSRR = (1 << (7 + 16));
 
         GPIOB_BSRR = (1 << 8);
         delay_ms(1000);
         GPIOB_BSRR = (1 << (8 + 16));
 
-        delay_ms(1000);
+        delay_ms(1000);*/
     }
 }
 
@@ -80,13 +87,18 @@ void GPIOB_Init(void) {
     GPIOB_CRL &= ~(0xF << (6 * 4));          // Clear bits for pin 6
     GPIOB_CRL |= (0xA << (6 * 4));           // MODE6=0b10 (2 MHz output), CNF6=0b10 (AF push-pull)
 
+    // PB3: input with pull-up (for EXTI)
+    GPIOB_CRL &= ~(0xF << (3 * 4));
+    GPIOB_CRL |= (0x8 << (3 * 4));     // MODE=00 input, CNF=10 pull-up/pull-down
+    GPIOB_BSRR = (1 << 3);             // Enable pull-up on PB3
+
 }
 
-void TIM4_PWM_Init(void) {
+void TIM4_PWM_Init() {
     RCC_APB1ENR |= (1 << 2);         // Enable TIM4 clock
     TIM4_PSC = 31;                   // 1 MHz timer clock
     TIM4_ARR = 99;                   // PWM period 100 µs @ 1 MHz
-    TIM4_CCR1 = 80;                  // Initial duty cycle 80%
+    TIM4_CCR1 = 0 + pwm_duty;       // Initial duty cycle 80%
     TIM4_CCMR1 &= ~(0x7 << 4);
     TIM4_CCMR1 |= (0x6 << 4);        // PWM mode 1
     TIM4_CCMR1 |= (1 << 3);          // Enable preload register for CCR1
@@ -102,5 +114,33 @@ void delay_ms(uint32_t ms) {
     TIM2_CR1 |= 1;                  // Enable counter
     while (TIM2_CNT < ms) {}        // Wait until count reached
     TIM2_CR1 &= ~1;                 // Disable counter (optional)
+}
+
+void EXTI3_Init(void) {
+    RCC_APB2ENR |= 1;                // Enable AFIO clock for EXTI config
+    AFIO_EXTICR1 &= ~(0xF << 12);
+    AFIO_EXTICR1 |= (0x1 << 12);   // Map EXTI3 line to port B
+
+    EXTI_IMR |= (1 << 3);            // Unmask EXTI3 interrupt
+    EXTI_FTSR |= (1 << 3);           // Enable falling edge trigger
+    EXTI_RTSR &= ~(1 << 3);          // Disable rising edge trigger
+    EXTI_PR = (1 << 3);              // Clear pending EXTI3 interrupt
+
+    NVIC_IPR[EXTI3_IRQn] = (1 << 4); // Priority set to 1 (0=highest)
+    NVIC_ISER[0] = (1 << EXTI3_IRQn); // Enable EXTI3 interrupt in NVIC
+}
+
+
+void EXTI3_IRQHandler(void) {
+    if (EXTI_PR & (1 << 3)) {
+        EXTI_PR = (1 << 3);          // Clear pending interrupt flag
+        increment_and_wrap(&pwm_duty);
+                 // Update PWM duty cycle
+    }
+}
+
+inline void increment_and_wrap(volatile uint8_t *val) {
+    *val += 5;
+    if (*val > 20) *val = 0;         // Wrap duty cycle at 50
 }
 
